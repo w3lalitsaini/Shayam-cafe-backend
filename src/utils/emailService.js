@@ -9,19 +9,52 @@ import {
   SIGNIN_EMAIL_TEMPLATE,
   VERIFICATION_EMAIL_TEMPLATE,
   WELCOME_VERIFIED_EMAIL_TEMPLATE,
-  NEW_ORDER_ADMIN_TEMPLATE
+  NEW_ORDER_ADMIN_TEMPLATE,
 } from "./emailtemplate.js";
 
-/* =========================
-   SMTP TRANSPORT (GMAIL)
-========================= */
+// ===========================================
+// GMAIL TRANSPORT (EMAIL_USER + EMAIL_PASS)
+// Make sure EMAIL_PASS is a Gmail APP password
+// ===========================================
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER, // your gmail
-    pass: process.env.EMAIL_PASS, // gmail app password
+    user: process.env.EMAIL_USER, // your Gmail
+    pass: process.env.EMAIL_PASS, // your Gmail app password
   },
 });
+
+// Optional: verify connection in logs (non-blocking)
+transporter.verify((err, success) => {
+  if (err) {
+    console.error("❌ Email transporter verification failed:", err.message);
+  } else {
+    console.log("✅ Email transporter ready to send messages");
+  }
+});
+
+const FROM_NAME = "Shree Shayam Café";
+const FROM_EMAIL = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+
+// Helper to build "from" field
+const fromAddress = `"${FROM_NAME}" <${FROM_EMAIL}>`;
+
+/* =========================
+   GENERIC EMAIL HELPER
+   (used by /api/contact etc.)
+========================= */
+export const sendEmail = async ({ to, subject, html, text }) => {
+  const mailOptions = {
+    from: fromAddress,
+    to,
+    subject,
+    text,
+    html,
+  };
+
+  const response = await transporter.sendMail(mailOptions);
+  console.log("✅ Generic email sent:", response.messageId);
+};
 
 /* =========================
    SEND VERIFICATION EMAIL
@@ -31,9 +64,9 @@ export const sendVerificationEmail = async (email, otp) => {
     const html = VERIFICATION_EMAIL_TEMPLATE.replace("{verificationCode}", otp);
 
     const response = await transporter.sendMail({
-      from: `"Brew Haven Café" <${process.env.EMAIL_USER}>`,
+      from: fromAddress,
       to: email,
-      subject: "Verify Your Email - Brew Haven Café",
+      subject: "Verify your email – Shree Shayam Café",
       html,
     });
 
@@ -52,9 +85,9 @@ export const sendWelcomeEmail = async (name, email) => {
     const html = WELCOME_VERIFIED_EMAIL_TEMPLATE(name);
 
     const response = await transporter.sendMail({
-      from: `"Brew Haven Café" <${process.env.EMAIL_USER}>`,
+      from: fromAddress,
       to: email,
-      subject: "🎉 Welcome to Brew Haven Café",
+      subject: "🎉 Welcome to Shree Shayam Café",
       html,
     });
 
@@ -76,9 +109,9 @@ export const sendSigninEmail = async (req, name, email) => {
     );
 
     const response = await transporter.sendMail({
-      from: `"Brew Haven Café" <${process.env.EMAIL_USER}>`,
+      from: fromAddress,
       to: email,
-      subject: "New login alert - Brew Haven Café",
+      subject: "New login alert – Shree Shayam Café",
       html,
     });
 
@@ -96,9 +129,9 @@ export const sendForgetPasswordEmail = async (email, resetToken) => {
     const html = RESET_PASSWORD_EMAIL_TEMPLATE(resetToken);
 
     const response = await transporter.sendMail({
-      from: `"Brew Haven Café" <${process.env.EMAIL_USER}>`,
+      from: fromAddress,
       to: email,
-      subject: "Reset your password - Brew Haven Café",
+      subject: "Reset your password – Shree Shayam Café",
       html,
     });
 
@@ -117,7 +150,7 @@ export const sendResetPasswordEmail = async (name, email) => {
     const html = PASSWORD_RESET_SUCCESS_TEMPLATE(name);
 
     const response = await transporter.sendMail({
-      from: `"Brew Haven Café" <${process.env.EMAIL_USER}>`,
+      from: fromAddress,
       to: email,
       subject: "Password changed successfully ✔️",
       html,
@@ -132,7 +165,6 @@ export const sendResetPasswordEmail = async (name, email) => {
 /* =========================
    NEW ORDER → ADMIN NOTIFY
 ========================= */
-
 export const sendNewOrderEmailToAdmin = async (order) => {
   try {
     const adminEmail =
@@ -142,34 +174,15 @@ export const sendNewOrderEmailToAdmin = async (order) => {
 
     const html = NEW_ORDER_ADMIN_TEMPLATE(order);
 
-    await transporter.sendMail({
-      from: `"Shree Shayam Café" <${process.env.EMAIL_USER}>`,
+    const response = await transporter.sendMail({
+      from: fromAddress,
       to: adminEmail,
-      subject: `New order received - ${order._id}`,
+      subject: `New order received – ${order._id}`,
       html,
     });
 
-    console.log("✅ New order email sent:", order._id);
+    console.log("✅ New order email sent:", response.messageId);
   } catch (err) {
     console.error("❌ Error sending new order email:", err);
   }
-};
-
-/* =========================
-   GENERIC EMAIL HELPER
-   (used by /api/contact etc.)
-========================= */
-export const sendEmail = async ({ to, subject, html, text }) => {
-  const mailOptions = {
-    from: `"Brew Haven Café" <${
-      process.env.EMAIL_FROM || process.env.EMAIL_USER
-    }>`,
-    to,
-    subject,
-    text,
-    html,
-  };
-
-  const response = await transporter.sendMail(mailOptions);
-  console.log("✅ Generic email sent:", response.messageId);
 };
