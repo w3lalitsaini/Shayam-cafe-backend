@@ -17,13 +17,14 @@ import {
 // Make sure EMAIL_PASS is a Gmail APP password
 // ===========================================
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587, // TLS (STARTTLS)
+  secure: false, // must be false for port 587
   auth: {
     user: process.env.EMAIL_USER, // your Gmail
-    pass: process.env.EMAIL_PASS, // your Gmail app password
+    pass: process.env.EMAIL_PASS, // your Gmail APP password
   },
 });
-
 // Optional: verify connection in logs (non-blocking)
 transporter.verify((err, success) => {
   if (err) {
